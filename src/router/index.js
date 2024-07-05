@@ -6,10 +6,7 @@ import Login from "@/pages/Login";
 
 import { createBrowserRouter} from 'react-router-dom'
 
-import Home from "@/pages/Home";
-import Article from "@/pages/Article";
-import Publish from "@/pages/Publish";
-import {lazy} from 'react'
+import {lazy, Suspense} from 'react'
 
 // 1. lazy函数对组件进行导入
 const Home = lazy(() => import('@/pages/Home'))
