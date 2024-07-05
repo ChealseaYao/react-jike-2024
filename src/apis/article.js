@@ -27,4 +27,12 @@ export function getArticleListAPI (params) {
   })
 }
 
+//delete
+export function delArticleAPI(id){
+  return request({
+    url: `mp/articles/${id}`,
+    method:'DELETE'
+  })
+}
+
   

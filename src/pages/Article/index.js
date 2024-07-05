@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Card, Breadcrumb, Form, Button, Radio, DatePicker, Select } from 'antd'
+import { Card, Breadcrumb, Form, Button, Radio, DatePicker, Select,Popconfirm } from 'antd'
 import locale from 'antd/es/date-picker/locale/zh_CN'
 
 import { Table, Tag, Space } from 'antd'
@@ -7,7 +7,8 @@ import { EditOutlined, DeleteOutlined } from '@ant-design/icons'
 import img404 from '@/assets/error.png'
 import { useChannel } from '@/hooks/useChannel'
 import { useState,useEffect } from 'react'
-import { getArticleListAPI } from '@/apis/article'
+import { delArticleAPI, getArticleListAPI } from '@/apis/article'
+
 
 
 const { Option } = Select
@@ -22,21 +23,7 @@ const Article = () => {
     2: <Tag color='success'>审核通过</Tag>,
   
   }
-
-  // 获取文章列表
-  const [list, setList] = useState([])
-  const [count, setCount] = useState(0)
-  useEffect(() => {
-    async function getList () {
-      const res = await getArticleListAPI()
-      setList(res.data.results)
-      setCount(res.data.total_count)
-    }
-    getList()
-  }, [])
- const {channelList}=useChannel()
-
- // 准备列数据
+  // 准备列数据
  const columns = [
   {
     title: '封面',
@@ -78,12 +65,19 @@ const Article = () => {
       return (
         <Space size="middle">
           <Button type="primary" shape="circle" icon={<EditOutlined />} />
-          <Button
-            type="primary"
-            danger
-            shape="circle"
-            icon={<DeleteOutlined />}
-          />
+            <Popconfirm
+              title="确认删除该条文章吗?"
+              onConfirm={() => onConfirm(data)}
+              okText="确认"
+              cancelText="取消"
+            >
+              <Button
+                type="primary"
+                danger
+                shape="circle"
+                icon={<DeleteOutlined />}
+              />
+            </Popconfirm>
         </Space>
       )
     }
@@ -104,6 +98,72 @@ const data = [
     title: 'wkwebview离线化加载h5资源解决方案'
   }
 ]
+  const [reqData,setReqData] = useState({
+      status:'',
+      channel_id:'',
+      begin_pubdate: '',
+      end_pubdate: '',
+      page:1,
+      per_page:4
+  })
+
+ 
+   // 筛选文章列表
+   const onFinish = async (formValue) => {
+    console.log(formValue)
+    setReqData({
+      status:formValue.status,
+      channel_id:formValue.channel_id,
+      begin_pubdate: formValue.date[0].format('YYYY-MM-DD'),
+      end_pubdate: formValue.date[1].format('YYYY-MM-DD'),
+      page: 1,
+      per_page: 4,
+    })
+    console.log('Updated reqData:', {
+      status: formValue.status,
+      channel_id: formValue.channel_id,
+      begin_pubdate: formValue.date[0].format('YYYY-MM-DD'),
+      end_pubdate: formValue.date[1].format('YYYY-MM-DD'),
+      page: 1,
+      per_page: 4,
+    });
+  
+  }
+  
+
+  // 获取文章列表
+  const [list, setList] = useState([])
+  const [count, setCount] = useState(0)
+  
+  useEffect(() => {
+    async function getList (reqData) {
+      const res = await getArticleListAPI(reqData)
+      setList(res.data.results)
+      setCount(res.data.total_count)}
+      getList(reqData)
+  }, [reqData])
+
+ 
+
+ const {channelList}=useChannel()
+
+ 
+const onPageChange=(page)=>{
+  console.log(page);
+  setReqData({
+    ...reqData,
+    page
+  })
+}
+
+// 删除
+const onConfirm = async (data) => {
+  await delArticleAPI(data.id)
+  // 更新列表
+  setReqData({
+    ...reqData,
+  })
+}
 
 
   return (
@@ -117,7 +177,7 @@ const data = [
         }
         style={{ marginBottom: 20 }}
       >
-        <Form initialValues={{ status: '' }}>
+        <Form initialValues={{ status: '' }} onFinish={onFinish}>
           <Form.Item label="状态" name="status">
             <Radio.Group>
               <Radio value={''}>全部</Radio>
@@ -153,7 +213,11 @@ const data = [
 
       {/* 表格区域 */}
       <Card title={`根据筛选条件共查询到 ${count} 条结果：`}>
-        <Table rowKey="id" columns={columns} dataSource={list} />
+        <Table rowKey="id" columns={columns} dataSource={list} pagination={{
+          total:count,
+          pageSize:reqData.per_page,
+          onChange:onPageChange
+          }}/>
       </Card>
     </div>
   )
